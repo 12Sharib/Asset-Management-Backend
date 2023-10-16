@@ -7,4 +7,6 @@ import com.assetmanagement.response.CategoryResponse;
 
 public interface CategoryService {
     CategoryResponse addCategory(CategoryInputDto category) throws AssetManagementException;
+
+    CategoryResponse getAllCategories();
 }

@@ -1,7 +1,9 @@
 package com.assetmanagement.service.serviceImpl;
 
 import com.assetmanagement.constants.MessageConstants;
+import com.assetmanagement.convertor.EntityDtoConvertor;
 import com.assetmanagement.dao.CategoryRepository;
+import com.assetmanagement.dto.CategoryDto;
 import com.assetmanagement.dto.CategoryInputDto;
 import com.assetmanagement.entity.Categories;
 import com.assetmanagement.enums.ErrorEnum;
@@ -13,11 +15,16 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @Log4j2
 public class CategoryServiceImpl implements CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private EntityDtoConvertor entityDtoConvertor;
     @Override
     public CategoryResponse addCategory(final CategoryInputDto categoryInputDto) throws AssetManagementException {
         log.info("Started service of add category service");
@@ -37,6 +44,19 @@ public class CategoryServiceImpl implements CategoryService {
 
         log.info("Completed service of add category service");
         return new CategoryResponse(MessageConstants.CATEGORY_SAVED,true);
+    }
+
+    @Override
+    public CategoryResponse getAllCategories() {
+        log.info("Started get all categories service");
+        final List<Categories> categories = categoryRepository.findAllActiveCategories();
+        final List<CategoryDto> categoryDtos = new ArrayList<>();
+
+        categories.forEach(category ->{
+            categoryDtos.add(entityDtoConvertor.convertCategoryToDto(category));
+        });
+        log.info("Completed get all categories service");
+        return new CategoryResponse(true, categoryDtos);
     }
 
     private void validateExistenceOfName(final String name) {
