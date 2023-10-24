@@ -11,6 +11,6 @@ import java.util.List;
 public interface CategoryRepository extends JpaRepository<Categories, Integer> {
     Boolean existsByName(String name);
 
-    @Query(value = "select * from categories where is_active=1",nativeQuery = true)
+    @Query(value = "select * from asset_categories where is_active=1",nativeQuery = true)
     List<Categories> findAllActiveCategories();
 }

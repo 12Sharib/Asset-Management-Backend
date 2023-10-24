@@ -43,10 +43,10 @@ public class DateTimeUtil {
         }
     }
 
-    public static void validateYearsMonthsDays(final String manufacturingDate) {
-        final Integer year = Integer.parseInt(manufacturingDate.substring(0,4));
-        final int month = Integer.parseInt(manufacturingDate.substring(5,7));
-        final Integer day = Integer.parseInt(manufacturingDate.substring(8,10));
+    public static void validateYearsMonthsDays(final String date) {
+        final Integer year = Integer.parseInt(date.substring(0,4));
+        final int month = Integer.parseInt(date.substring(5,7));
+        final Integer day = Integer.parseInt(date.substring(8,10));
 
         //validate is valid month and years
         isValidYearMonthDays(year, month, day);
@@ -106,5 +106,9 @@ public class DateTimeUtil {
             ));
         }
 
+    }
+
+    public static String convertDateToString(final Date date) {
+        return simpleDateFormat.format(date);
     }
 }

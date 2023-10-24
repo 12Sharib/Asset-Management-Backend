@@ -26,7 +26,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Autowired
     private EntityDtoConvertor entityDtoConvertor;
     @Override
-    public CategoryResponse addCategory(final CategoryInputDto categoryInputDto) throws AssetManagementException {
+    public CategoryResponse addCategory(final CategoryInputDto categoryInputDto){
         log.info("Started service of add category service");
 
         //validate the name of category
@@ -80,7 +80,6 @@ public class CategoryServiceImpl implements CategoryService {
         try{
             Integer.parseInt(name);
         }catch (final NumberFormatException exception){
-            log.error("Invalid Category Name: ", exception);
             return true;
         }
         return false;

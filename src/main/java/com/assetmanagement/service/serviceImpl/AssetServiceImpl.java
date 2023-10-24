@@ -3,18 +3,24 @@ package com.assetmanagement.service.serviceImpl;
 import com.assetmanagement.constants.AssetStatusConstants;
 import com.assetmanagement.constants.MessageConstants;
 import com.assetmanagement.convertor.EntityDtoConvertor;
+import com.assetmanagement.dao.AllocationRepository;
 import com.assetmanagement.dao.AssetRepository;
 import com.assetmanagement.dao.CategoryRepository;
 import com.assetmanagement.dao.CommonAttributesRepository;
 import com.assetmanagement.dao.ManufacturingInfoRepository;
 import com.assetmanagement.dao.MoreAttributesRepository;
 import com.assetmanagement.dao.TypeRepository;
+import com.assetmanagement.dto.AssetDto;
 import com.assetmanagement.dto.AssetInputDto;
 import com.assetmanagement.dto.ManufacturingInputDto;
+import com.assetmanagement.entity.Allocation;
 import com.assetmanagement.entity.Asset;
+import com.assetmanagement.entity.Categories;
 import com.assetmanagement.entity.CommonAttributes;
 import com.assetmanagement.entity.ManufacturingInfo;
 import com.assetmanagement.entity.MoreAttributes;
+import com.assetmanagement.entity.Type;
+import com.assetmanagement.enums.AssetStatusEnum;
 import com.assetmanagement.enums.ErrorEnum;
 import com.assetmanagement.exceptions.AssetManagementException;
 import com.assetmanagement.response.AssetResponse;
@@ -25,11 +31,15 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Log4j2
 @Service
 public class AssetServiceImpl implements AssetService {
+    @Autowired
+    private AllocationRepository allocationRepository;
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
@@ -79,8 +89,110 @@ public class AssetServiceImpl implements AssetService {
         return new AssetResponse(MessageConstants.ASSET_SAVED, true);
     }
 
+    @Override
+    public AssetResponse allAssets() {
+        log.info("Started get all assets service");
+
+        final List<Categories> categories = categoryRepository.findAll();
+        final List<Type> types = typeRepository.findAll();
+        final List<ManufacturingInfo> manufacturingInfos = manufacturingInfoRepository.findAll();
+//        final List<CommonAttributes> commonAttributes = commonAttributesRepository.findAll();
+//        final List<MoreAttributes> moreAttributes = moreAttributesRepository.findAll();
+        final List<Allocation> allocations = allocationRepository.findAll();
+
+        // All active assets
+        final List<Asset> assets = assetRepository.findAllActiveAssets();
+        final List<AssetDto> assetDtos = new ArrayList<>();
+
+        // Iterate to convert asset to dto
+        assets.forEach(asset -> {
+            final AssetDto assetDto = new AssetDto();
+
+            final Optional<Type> optionalType = types.stream().filter(type -> type.getId().equals(asset.getTypeId())).findFirst();
+            final Optional<Categories> optionalCategory = categories.stream().filter(category -> category.getId().equals(asset.getCategoriesId())).findFirst();
+            final Optional<ManufacturingInfo> optionalManufacturingInfo = manufacturingInfos.stream().filter(manufacturingInfo -> manufacturingInfo.getId().equals(asset.getManufacturingInfoId())).findFirst();
+//            final Optional<MoreAttributes> optionalMoreAttribute = moreAttributes.stream().filter(moreAttribute -> moreAttribute.getId().equals(asset.getMoreAttributeId())).findFirst();
+//            final Optional<CommonAttributes> optionalCommonAttribute = commonAttributes.stream().filter(commonAttribute -> commonAttribute.getId().equals(asset.getCommonAttributesId())).findFirst();
+            final Optional<Allocation> optionalAllocation = allocations.stream().filter(allocation -> allocation.getAssetId().equals(asset.getId())).findFirst();
+
+            // Set all details in dto
+            if (optionalType.isPresent() && optionalCategory.isPresent()
+                    && optionalManufacturingInfo.isPresent()
+//                    && optionalCommonAttribute.isPresent()
+//                    && optionalMoreAttribute.isPresent()
+                    ) {
+
+                assetDto.setTypeName(optionalType.get().getName());
+                assetDto.setBrand(optionalManufacturingInfo.get().getBrand());
+                assetDto.setAssetId(asset.getId());
+                assetDto.setPrice(optionalManufacturingInfo.get().getPrice());
+                assetDto.setDescription(assetDto.getDescription());
+                assetDto.setStatus(getAssetStatus(asset.getStatus()));
+                assetDto.setWarrantyEnd(DateTimeUtil.convertDateToString(optionalManufacturingInfo.get().getWarrantyEnd()));
+                assetDto.setVendorLocation(optionalManufacturingInfo.get().getVendorLocation());
+            }
+            if (optionalAllocation.isPresent()){
+                assetDto.setAllocatedTo(optionalAllocation.get().getEmployeeId());
+                assetDto.setAllocationDate(DateTimeUtil.convertDateToString(optionalAllocation.get().getStartDate()));
+            }else {
+                assetDto.setAllocatedTo(null);
+                assetDto.setAllocationDate(null);
+            }
+            // Last Update from history table
+            assetDto.setLastUpdate(null);
+
+            assetDtos.add(assetDto);
+        });
+
+        log.info("Completed get all assets service");
+        return new AssetResponse(true, assetDtos);
+    }
+
+    @Override
+    public AssetResponse updateStatus(final Integer assetId, final Integer statusId) {
+        log.info("Started update asset status service");
+        // Validate asset id
+        validateAssetId(assetId);
+        // Validate status id
+        if (getAssetStatus(statusId) == null){
+            throw new AssetManagementException(new ErrorResponse(
+                    ErrorEnum.INVALID_ASSET_STATUS_CODE.getErrorCode(), ErrorEnum.INVALID_ASSET_STATUS_CODE.getErrorMessage(), false
+            ));
+        }
+        // Update status of the asset
+        final Optional<Asset> optionalAsset = assetRepository.findById(assetId);
+        log.info("Started updating asset status");
+        if (optionalAsset.isPresent()){
+            final Asset asset = optionalAsset.get();
+            asset.setStatus(AssetStatusEnum.DE_COMMISSIONED.getStatus());
+            assetRepository.save(asset);
+            log.info("Completed updating asset status");
+        }
+        log.info("Completed update asset status service");
+        return new AssetResponse(true, MessageConstants.STATUS_UPDATED_SUCCESSFULLY);
+    }
+
+    private void validateAssetId(final Integer assetId) {
+        if (!assetRepository.existsById(assetId)){
+            throw new AssetManagementException(new ErrorResponse(
+                    ErrorEnum.INVALID_ASSET_ID.getErrorCode(), ErrorEnum.INVALID_ASSET_ID.getErrorMessage(), false
+            ));
+        }
+    }
+
+    private String getAssetStatus(final Integer status) {
+        return switch (status) {
+            case 1 -> AssetStatusConstants.ACTIVE;
+            case 2 -> AssetStatusConstants.ALLOCATED;
+            case 3 -> AssetStatusConstants.DE_COMMISSIONED;
+            case 4 -> AssetStatusConstants.IN_ACTIVE;
+            case 5 -> AssetStatusConstants.DEFECTIVE;
+            default -> null;
+        };
+    }
+
     private void validateCategoryId(final Integer categoryId) {
-        if(!categoryRepository.existsById(categoryId)){
+        if (!categoryRepository.existsById(categoryId)) {
             throw new AssetManagementException(new ErrorResponse(
                     ErrorEnum.INVALID_CATEGORY_ID.getErrorCode(), ErrorEnum.INVALID_CATEGORY_ID.getErrorMessage(), false
             ));
@@ -88,7 +200,7 @@ public class AssetServiceImpl implements AssetService {
     }
 
     private void validateTypeId(final Integer typeId) {
-        if (!typeRepository.existsById(typeId)){
+        if (!typeRepository.existsById(typeId)) {
             throw new AssetManagementException(new ErrorResponse(
                     ErrorEnum.INVALID_TYPE_ID.getErrorCode(), ErrorEnum.INVALID_TYPE_ID.getErrorMessage(), false
             ));
@@ -98,7 +210,7 @@ public class AssetServiceImpl implements AssetService {
     private void saveAsset(final Integer manufacturingInfoId, final Integer moreAttributesId,
                            final Integer commonAttributesId, final AssetInputDto assetInputDto) {
         final Asset newAsset = new Asset();
-        newAsset.setStatus(AssetStatusConstants.ACTIVE);
+        newAsset.setStatus(AssetStatusEnum.ACTIVE.getStatus());
         newAsset.setDescription(assetInputDto.getDescription());
         newAsset.setTypeId(assetInputDto.getTypeId());
         newAsset.setCategoriesId(assetInputDto.getCategoryId());

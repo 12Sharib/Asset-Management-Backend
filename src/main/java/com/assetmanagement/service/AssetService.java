@@ -6,4 +6,8 @@ import com.assetmanagement.response.AssetResponse;
 
 public interface AssetService {
     AssetResponse addAsset(AssetInputDto assetInputDto);
+
+    AssetResponse allAssets();
+
+    AssetResponse updateStatus(Integer assetId, Integer statusId);
 }

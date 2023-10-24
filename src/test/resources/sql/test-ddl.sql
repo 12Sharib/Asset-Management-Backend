@@ -1,5 +1,3 @@
-create database asset_management;
-use asset_management;
 
 CREATE TABLE `practice_unit` (
   `id` int NOT NULL,

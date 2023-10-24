@@ -1,8 +1,10 @@
 package com.assetmanagement.convertor;
 
+import com.assetmanagement.dto.AllocationDto;
 import com.assetmanagement.dto.CategoryDto;
 import com.assetmanagement.dto.ManufacturingInputDto;
 import com.assetmanagement.dto.TypeDto;
+import com.assetmanagement.entity.Allocation;
 import com.assetmanagement.entity.Categories;
 import com.assetmanagement.entity.ManufacturingInfo;
 import com.assetmanagement.entity.Type;
@@ -23,4 +25,8 @@ public class EntityDtoConvertor {
     public CategoryDto convertCategoryToDto(final Categories category){
         return modelMapper.map(category, CategoryDto.class);
     }
+    public AllocationDto convertAllocationToDto(final Allocation allocation){
+        return modelMapper.map(allocation, AllocationDto.class);
+    }
+
 }
