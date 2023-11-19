@@ -11,12 +11,10 @@ public class AssetDto {
     private String typeName;
     private String brand;
     private Integer assetId;
-    private Double price;
-    private String description;
-    private String status;
     private String allocatedTo;
     private String allocationDate;
     private String lastUpdate;
-    private String warrantyEnd;
-    private String vendorLocation;
+    private ManufacturingInfoDto manufacturingInfoDto;
+    private MoreAttributesDto moreAttributesDto;
+    private CommonAttributesDto commonAttributesDto;
 }

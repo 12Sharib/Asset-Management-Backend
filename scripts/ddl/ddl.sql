@@ -2,13 +2,13 @@ create database asset_management;
 use asset_management;
 
 CREATE TABLE `practice_unit` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
 );
 
  CREATE TABLE `designation` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
 );
@@ -28,14 +28,14 @@ CREATE TABLE `employee` (
 );
 
 CREATE TABLE `asset_type` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(45) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 );
 
 CREATE TABLE `asset_categories` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(45) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
@@ -110,7 +110,7 @@ CREATE TABLE `asset_allocation` (
 );
 
 CREATE TABLE `asset_history` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `date` date DEFAULT NULL,
   `note` varchar(100) DEFAULT NULL,
   `asset_id` int NOT NULL,

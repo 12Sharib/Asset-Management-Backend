@@ -122,7 +122,7 @@ public class TypeServiceImpl implements TypeService {
 
     private void validateTypeNameIsExists(final String name) {
         final Boolean isExist = typeRepository.existByName(name);
-        if(isExist){
+        if(isExist != null){
             throw new AssetManagementException(new ErrorResponse(
                     ErrorEnum.EXISTING_TYPE_NAME.getErrorCode(), ErrorEnum.EXISTING_TYPE_NAME.getErrorMessage(), false
             ));

@@ -1,8 +1,5 @@
 package com.assetmanagement.dto;
 
-import com.assetmanagement.entity.CommonAttributes;
-import com.assetmanagement.entity.ManufacturingInfo;
-import com.assetmanagement.entity.MoreAttributes;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,9 +16,9 @@ public class AssetInputDto {
     @Valid
     private ManufacturingInputDto manufacturingInfo;
     @Valid
-    private MoreAttributes moreAttributes;
+    private MoreAttributesInputDto moreAttributes;
     @Valid
-    private CommonAttributes commonAttributes;
+    private CommonAttributesInputDto commonAttributes;
     @NotBlank(message = "Description can't be blank or empty, provide some description of asset")
     private String description;
 }

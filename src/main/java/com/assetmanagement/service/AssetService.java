@@ -10,4 +10,7 @@ public interface AssetService {
     AssetResponse allAssets();
 
     AssetResponse updateStatus(Integer assetId, Integer statusId);
+
+
+    AssetResponse assetsByCategory(Integer categoryId);
 }

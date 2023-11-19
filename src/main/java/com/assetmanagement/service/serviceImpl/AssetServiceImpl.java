@@ -12,7 +12,9 @@ import com.assetmanagement.dao.MoreAttributesRepository;
 import com.assetmanagement.dao.TypeRepository;
 import com.assetmanagement.dto.AssetDto;
 import com.assetmanagement.dto.AssetInputDto;
+import com.assetmanagement.dto.CommonAttributesInputDto;
 import com.assetmanagement.dto.ManufacturingInputDto;
+import com.assetmanagement.dto.MoreAttributesInputDto;
 import com.assetmanagement.entity.Allocation;
 import com.assetmanagement.entity.Asset;
 import com.assetmanagement.entity.Categories;
@@ -92,18 +94,25 @@ public class AssetServiceImpl implements AssetService {
     @Override
     public AssetResponse allAssets() {
         log.info("Started get all assets service");
+        // All active assets
+        final List<Asset> assets = assetRepository.findAllActiveAssets();
 
+        // Get an asset dto list from assets
+        final List<AssetDto> assetDtos  = getAssetDtoFromAssets(assets);
+
+        log.info("Completed get all assets service");
+        return new AssetResponse(true, assetDtos);
+    }
+
+    private List<AssetDto> getAssetDtoFromAssets(final List<Asset> assets) {
         final List<Categories> categories = categoryRepository.findAll();
         final List<Type> types = typeRepository.findAll();
         final List<ManufacturingInfo> manufacturingInfos = manufacturingInfoRepository.findAll();
-//        final List<CommonAttributes> commonAttributes = commonAttributesRepository.findAll();
-//        final List<MoreAttributes> moreAttributes = moreAttributesRepository.findAll();
+        final List<CommonAttributes> commonAttributes = commonAttributesRepository.findAll();
+        final List<MoreAttributes> moreAttributes = moreAttributesRepository.findAll();
         final List<Allocation> allocations = allocationRepository.findAll();
 
-        // All active assets
-        final List<Asset> assets = assetRepository.findAllActiveAssets();
         final List<AssetDto> assetDtos = new ArrayList<>();
-
         // Iterate to convert asset to dto
         assets.forEach(asset -> {
             final AssetDto assetDto = new AssetDto();
@@ -111,30 +120,27 @@ public class AssetServiceImpl implements AssetService {
             final Optional<Type> optionalType = types.stream().filter(type -> type.getId().equals(asset.getTypeId())).findFirst();
             final Optional<Categories> optionalCategory = categories.stream().filter(category -> category.getId().equals(asset.getCategoriesId())).findFirst();
             final Optional<ManufacturingInfo> optionalManufacturingInfo = manufacturingInfos.stream().filter(manufacturingInfo -> manufacturingInfo.getId().equals(asset.getManufacturingInfoId())).findFirst();
-//            final Optional<MoreAttributes> optionalMoreAttribute = moreAttributes.stream().filter(moreAttribute -> moreAttribute.getId().equals(asset.getMoreAttributeId())).findFirst();
-//            final Optional<CommonAttributes> optionalCommonAttribute = commonAttributes.stream().filter(commonAttribute -> commonAttribute.getId().equals(asset.getCommonAttributesId())).findFirst();
+            final Optional<MoreAttributes> optionalMoreAttribute = moreAttributes.stream().filter(moreAttribute -> moreAttribute.getId().equals(asset.getMoreAttributeId())).findFirst();
+            final Optional<CommonAttributes> optionalCommonAttribute = commonAttributes.stream().filter(commonAttribute -> commonAttribute.getId().equals(asset.getCommonAttributesId())).findFirst();
             final Optional<Allocation> optionalAllocation = allocations.stream().filter(allocation -> allocation.getAssetId().equals(asset.getId())).findFirst();
 
             // Set all details in dto
             if (optionalType.isPresent() && optionalCategory.isPresent()
                     && optionalManufacturingInfo.isPresent()
-//                    && optionalCommonAttribute.isPresent()
-//                    && optionalMoreAttribute.isPresent()
-                    ) {
+                    && optionalCommonAttribute.isPresent()
+                    && optionalMoreAttribute.isPresent()) {
 
                 assetDto.setTypeName(optionalType.get().getName());
                 assetDto.setBrand(optionalManufacturingInfo.get().getBrand());
                 assetDto.setAssetId(asset.getId());
-                assetDto.setPrice(optionalManufacturingInfo.get().getPrice());
-                assetDto.setDescription(assetDto.getDescription());
-                assetDto.setStatus(getAssetStatus(asset.getStatus()));
-                assetDto.setWarrantyEnd(DateTimeUtil.convertDateToString(optionalManufacturingInfo.get().getWarrantyEnd()));
-                assetDto.setVendorLocation(optionalManufacturingInfo.get().getVendorLocation());
+                assetDto.setManufacturingInfoDto(entityDtoConvertor.convertManufacturingInfoToDto(optionalManufacturingInfo.get()));
+                assetDto.setCommonAttributesDto(entityDtoConvertor.convertCommonAttributesToDto(optionalCommonAttribute.get()));
+                assetDto.setMoreAttributesDto(entityDtoConvertor.convertMoreAttributesToDto(optionalMoreAttribute.get()));
             }
-            if (optionalAllocation.isPresent()){
+            if (optionalAllocation.isPresent()) {
                 assetDto.setAllocatedTo(optionalAllocation.get().getEmployeeId());
                 assetDto.setAllocationDate(DateTimeUtil.convertDateToString(optionalAllocation.get().getStartDate()));
-            }else {
+            } else {
                 assetDto.setAllocatedTo(null);
                 assetDto.setAllocationDate(null);
             }
@@ -143,9 +149,7 @@ public class AssetServiceImpl implements AssetService {
 
             assetDtos.add(assetDto);
         });
-
-        log.info("Completed get all assets service");
-        return new AssetResponse(true, assetDtos);
+        return assetDtos;
     }
 
     @Override
@@ -154,7 +158,7 @@ public class AssetServiceImpl implements AssetService {
         // Validate asset id
         validateAssetId(assetId);
         // Validate status id
-        if (getAssetStatus(statusId) == null){
+        if (getAssetStatus(statusId) == null) {
             throw new AssetManagementException(new ErrorResponse(
                     ErrorEnum.INVALID_ASSET_STATUS_CODE.getErrorCode(), ErrorEnum.INVALID_ASSET_STATUS_CODE.getErrorMessage(), false
             ));
@@ -162,7 +166,7 @@ public class AssetServiceImpl implements AssetService {
         // Update status of the asset
         final Optional<Asset> optionalAsset = assetRepository.findById(assetId);
         log.info("Started updating asset status");
-        if (optionalAsset.isPresent()){
+        if (optionalAsset.isPresent()) {
             final Asset asset = optionalAsset.get();
             asset.setStatus(AssetStatusEnum.DE_COMMISSIONED.getStatus());
             assetRepository.save(asset);
@@ -172,8 +176,24 @@ public class AssetServiceImpl implements AssetService {
         return new AssetResponse(true, MessageConstants.STATUS_UPDATED_SUCCESSFULLY);
     }
 
+    @Override
+    public AssetResponse assetsByCategory(Integer categoryId) {
+        log.info("Started get all assets by category service");
+        // Validate category id
+        validateCategoryId(categoryId);
+
+        // Get all assets of this category
+        final List<Asset> assets = assetRepository.findByCategoryId(categoryId);
+
+        // Get an asset dto list from assets
+        final List<AssetDto> assetDtos = getAssetDtoFromAssets(assets);
+
+        log.info("Completed get all assets by category service");
+        return new AssetResponse(true, assetDtos);
+    }
+
     private void validateAssetId(final Integer assetId) {
-        if (!assetRepository.existsById(assetId)){
+        if (!assetRepository.existsById(assetId)) {
             throw new AssetManagementException(new ErrorResponse(
                     ErrorEnum.INVALID_ASSET_ID.getErrorCode(), ErrorEnum.INVALID_ASSET_ID.getErrorMessage(), false
             ));
@@ -222,13 +242,25 @@ public class AssetServiceImpl implements AssetService {
         assetRepository.save(newAsset);
     }
 
-    private Integer saveCommonAttributes(final CommonAttributes commonAttributesDetails) {
-        final CommonAttributes commonAttributes = commonAttributesRepository.save(commonAttributesDetails);
+    private Integer saveCommonAttributes(final CommonAttributesInputDto commonAttributesDetails) {
+        final CommonAttributes newCommonAttributesDetails = new CommonAttributes();
+        newCommonAttributesDetails.setColour(commonAttributesDetails.getColour());
+        newCommonAttributesDetails.setModelNumber(commonAttributesDetails.getModelNumber());
+        newCommonAttributesDetails.setSerialNumber(commonAttributesDetails.getSerialNumber());
+        newCommonAttributesDetails.setSku(commonAttributesDetails.getSku());
+
+        final CommonAttributes commonAttributes = commonAttributesRepository.save(newCommonAttributesDetails);
         return commonAttributes.getId();
     }
 
-    private Integer saveMoreAttributes(final MoreAttributes moreAttributesDetails) {
-        final MoreAttributes moreAttributes = moreAttributesRepository.save(moreAttributesDetails);
+    private Integer saveMoreAttributes(final MoreAttributesInputDto moreAttributesDetails) {
+        final MoreAttributes newMoreAttributesDetails = new MoreAttributes();
+        newMoreAttributesDetails.setRam(moreAttributesDetails.getRam());
+        newMoreAttributesDetails.setHardDisk(moreAttributesDetails.getHardDisk());
+        newMoreAttributesDetails.setScreenSize(moreAttributesDetails.getScreenSize());
+        newMoreAttributesDetails.setOperatingSystem(moreAttributesDetails.getOperatingSystem());
+
+        final MoreAttributes moreAttributes = moreAttributesRepository.save(newMoreAttributesDetails);
         return moreAttributes.getId();
     }
 
