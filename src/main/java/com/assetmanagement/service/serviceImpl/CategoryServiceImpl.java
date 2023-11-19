@@ -60,8 +60,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     private void validateExistenceOfName(final String name) {
-        final Boolean isExist = categoryRepository.existsByName(name);
-        if (isExist != null){
+        if (categoryRepository.existsByName(name)){
             throw new AssetManagementException(new ErrorResponse(
                  ErrorEnum.EXISTING_CATEGORY_NAME.getErrorCode(), ErrorEnum.EXISTING_CATEGORY_NAME.getErrorMessage(), false
             ));

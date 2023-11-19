@@ -31,7 +31,7 @@ public class AllocationController {
         log.info("Completed allocate asset controller, execution time: {} - ms, Total time:- {}", endTime, DateTimeUtil.getTotalTime(startTime));
         return new ResponseEntity<>(allocationResponse, HttpStatus.OK);
     }
-    @GetMapping("all")
+    @GetMapping("/all")
     public ResponseEntity<AllocationResponse> getAllAllocations(){
         final long startTime = DateTimeUtil.getCurrentTime();
         log.info("Started get all allocations controller, starting time: {} - {}", startTime, "ms");
